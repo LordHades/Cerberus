@@ -1,4 +1,4 @@
 Cerberus
 ========
 
-Cerberus
+A Turntable.FM bot
