@@ -171,6 +171,7 @@ Bot.prototype.deregistered = function(data){
 };
 Bot.prototype.newsong = function(data){
 	try{
+		cerberus.auto_bop(data);
 		deck_full = data.room.metadata.dj_full;
 		current_dj_id = data.room.metadata.current_dj;
 		current_dj_name = data.room.metadata.current_song.djname;
@@ -188,7 +189,7 @@ Bot.prototype.pmmed = function(data){
 	try{
 		cerberus.whisper(data);
 		cerberus.listen(data);
-		cerberus.chat_log(sender_name + ": ", data.text);
+		cerberus.chat_log("PM From " + sender_name + ": ", data.text);
 	}catch(err){
 		cerberus.fail(err);
 	}
@@ -197,11 +198,11 @@ Bot.prototype.pmmed = function(data){
 Bot.prototype.ready = function(){
 	try{
 		cerberus.setAvatar(bot_avatar || 18);
-		cerberus.modifyLaptop(bot_laptop || "linux");
+		cerberus.modifyLaptop(bot_laptop || "chrome");
 		cerberus.modifyProfile({ 
-			name: bot_name || "xxx", 
+			name: bot_name || "bot", 
 			twitter: bot_twitter_name || "",
-			soundcloud: bot_soundcloud_url || "", 
+			soundcloud: bot_soundcloud_url || "hadescat", 
 			website: bot_website_url || "",
 			facebook: bot_facebook_url || "", 
 			about: bot_about || "",
@@ -234,6 +235,18 @@ Bot.prototype.registered = function(data){
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //CUSTOM BOT FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Bot.prototype.auto_bop = function(data){
+	try{
+		var maxWaitSeconds = 180;
+		var oneSecond = 1000;
+		setTimeout( function() {
+			cerberus.bop();
+		}, Math.floor(Math.random() * maxWaitSeconds) * oneSecond);
+	}
+	catch(err){
+		cerberus.fail(err);
+	}
+}
 Bot.prototype.chat_log = function(name, text){
 	try{
 		var ts = new Date();
@@ -314,7 +327,7 @@ Bot.prototype.commands = function(data){
                 }
             },*/
             { //get up on stage
-                "name": "/up",
+                "name": "/onstage",
                 "help": "/me will hop on deck...",
                 "acl": 1,
                 "mode": [default_mode],
@@ -323,7 +336,7 @@ Bot.prototype.commands = function(data){
                 }
             },
             { //get off stage
-                "name": "/down",
+                "name": "/offstage",
                 "help": "/me will get down...",
                 "acl": 1,
                 "mode": [default_mode],
@@ -395,11 +408,11 @@ Bot.prototype.commands = function(data){
 					if(bot_id == current_dj_id){
 						cerberus.skip();
 						var talkback = setTimeout(function(){
-							cerberus.speak(data, 'i see how it is @' + data.name);
+							cerberus.speak(data, 'i see how it is @' + sender_name);
 						}, 500);
 					}else{
 						if(announce_mode){
-							cerberus.speak("i'm not even djing @" + data.name);
+							cerberus.speak("i'm not even djing @" + sender_name);
 						}
 					}
 				}
@@ -633,6 +646,16 @@ Bot.prototype.commands = function(data){
 					setTimeout(function() { cerberus.speak("/me bows.");}, 1500);
 				}
 			},
+			{ //copy user's laptop stickers
+                "name": "/copy",
+                "help": "/me will copy indicated user's laptop stickers...",
+                "acl": 1,
+                "mode": [default_mode],
+                code: function(data){
+					var target_name = data.text.split("/copy ");
+					cerberus.getUserId(target_name[1], function(data){ cerberus.copy(data, data.userid); });
+                }
+            }
         ];
         return lexicon;
 	}catch(err){
@@ -640,6 +663,14 @@ Bot.prototype.commands = function(data){
 	}
 //make commands based on current features
 };
+Bot.prototype.copy = function(data, target_id){
+	try{
+		var target_placements = cerberus.getStickerPlacements(target_id, function (data) { cerberus.placeStickers(data.placements) });	
+	}
+	catch(err){
+		cerberus.fail(err);
+	}
+}
 Bot.prototype.fail = function(err){
 	if (typeof err === 'object') {
         if(err !== null){
@@ -657,6 +688,32 @@ Bot.prototype.fail = function(err){
 	}
 //report error dumps
 };
+Bot.prototype.find_id = function(name){
+	try{
+		for(var i in users){
+			if(name == users[i].name)
+			{
+				return users[i].id;
+			}	
+		}
+	}
+	catch(err){
+		cerberus.fail(err);
+	}
+}
+Bot.prototype.find_name = function(id){
+	try{
+		for(var i in users){
+			if(id == users[i].id){
+				name = users[i].name;
+				return name;
+			}
+		}
+	}catch(err){
+		cerberus.fail(err);
+	}
+//find name in users group
+};
 Bot.prototype.is_bot = function(id){
 	try{
 		var bot = false;
@@ -671,21 +728,20 @@ Bot.prototype.is_bot = function(id){
 };
 Bot.prototype.listen = function(data){
 	try{
-        var name = data.name;
+        var name = sender_name;
         var commands = new cerberus.commands();
         var text = data.text.toLowerCase();
         for(var i in commands){
-            if(text.match("^" + commands[i].name + "$")){
-                var mod = mods.indexOf(data.userid);
+            if(text.match("^" + commands[i].name + "")){
+                var mod = mods.indexOf(sender_id);
                 for(var j in commands[i].mode){
                     if(commands[i].mode[j]){
                         if(mod >= 0){
                             if(commands[i].acl === 0 || 1){
-                                if(data.userid == bot_id){
+                                if(sender_id == bot_id){
                                     break;
                                 }
                                 commands[i].code(data);
-								console.log(commands[i].name);
                             }
                         }else{
                             if(commands[i].acl === 0){
@@ -797,10 +853,16 @@ Bot.prototype.toggle = function(mode, text){
 };
 Bot.prototype.whisper = function(data){
 	try{
-	//console.log(data);
-	sender_id= data.userid;
-	sender_name = data.name;
-	sender_title = cerberus.title_check(data.userid);
+		//console.log(data);
+		if(data.command == "chat")
+		{
+			sender_id = data.userid;
+		}
+		else if(data.command == 'pmmed'){
+			sender_id= data.senderid;
+		}
+		sender_name = cerberus.find_name(sender_id);
+		sender_title = cerberus.title_check(sender_id);
 	}
 	catch(err){
 		cerberus.fail(err);
