@@ -892,7 +892,6 @@ Bot.prototype.whisper = function(data){
 //CUSTOM FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 global.create_cerberus = function(){//create instance of bot named cerberus with relevent event handlers
-	console.log("create_cerberus called");
 	global.cerberus = new Bot(bot_auth, bot_id, room_id);//create bot instance
 	repl.start('> ').context.bot = cerberus;//add repl for dynamic bot commands
 
@@ -915,14 +914,11 @@ global.create_cerberus = function(){//create instance of bot named cerberus with
 	//bot.on("rem_dj", function (data){this.rem_dj(data);});//handle remove dj event
 }
 global.find_room = function(){//find roomid based on user input of name
-	console.log("find_room called");
-	console.log(target_room);
 	for(var i in destination){
 		if(destination[i].name == target_room){
 				room_id = destination[i].id;
 		}
 	}
-	console.log(room_id);
 	if(room_id != "")
 	{
 		create_cerberus();
@@ -930,7 +926,9 @@ global.find_room = function(){//find roomid based on user input of name
 }
 global.from_user = function(){//get room name from user
 	prompt.start();
-	prompt.get("room", function(err, result){target_room=result.room; find_room();});
+	prompt.message = "";
+	prompt.delimiter = "";
+	prompt.get({name:"room",description:"Which room would you like to enter?".green}, function(err, result){target_room=result.room; find_room();});
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
