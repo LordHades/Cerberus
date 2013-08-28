@@ -91,6 +91,25 @@ global.ingredients_list = ["Tri-tip steak","Eggplant","Eggs","Milk/Cream","Salmo
 						"Cauliflower","Figs","Vanilla Pudding","Chocolate Pudding","Flavored Jello","Honey",
 						"Dr. Pepper"
 					];
+//array rooms you want your bot to enter.
+global.destination = [
+	{
+		name: "xxx", //name of room. Doesn't have to match TT this is what you will type
+		id: "xxx",//roomid must match TT. Retreive from room source code or by using bookmarklet
+	},
+	{
+		name: "xxx",
+		id: "xxx",
+	},
+	{
+		name: "xxx",
+		id: "xxx",
+	},
+	{
+		name: "xxx",
+		id: "xxx",
+	},
+];
 
 //room construct variables
 global.djs = [];
@@ -870,25 +889,56 @@ Bot.prototype.whisper = function(data){
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//RUNTIME ENVIRONMENT
+//CUSTOM FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-global.cerberus = new Bot(bot_auth, bot_id, room_id);//create bot instance
-repl.start('> ').context.bot = cerberus;//add repl for dynamic bot commands
+global.create_cerberus = function(){//create instance of bot named cerberus with relevent event handlers
+	console.log("create_cerberus called");
+	global.cerberus = new Bot(bot_auth, bot_id, room_id);//create bot instance
+	repl.start('> ').context.bot = cerberus;//add repl for dynamic bot commands
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//TURNTABLE EVENT HANDLERS
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	cerberus.on("ready", function (data){this.ready();});//turntable bot ready
+	cerberus.on("roomChanged", function (data){this.changed(data);});//bot entering new room
+	cerberus.on("registered", function (data){this.registered(data);});//handle user register event
+	cerberus.on("deregistered", function (data){this.deregistered(data);});//handle user deregister event
+	cerberus.on("speak", function (data){this.chat(data);});//handle chat public chat event
+	cerberus.on("pmmed", function (data){this.pmmed(data);});//handle bot private message event
+	cerberus.on("newsong", function (data){this.newsong(data);});//handle new song event
+	//bot.on("snagged", function (data){this.snagged(data);});//handle song snagged event
+	//bot.on("update_votes", function (data){this.update_votes(data);});//handle vote event
+	//bot.on("endsong", function (data){this.endsong(data);});//handle end song event
+	//bot.on("new_moderator", function (data){this.add_mod(data);});//handle new moderator event
+	//bot.on("rem_moderator", function (data){this.rem_mod(data);});//handle removed moderator event
+	//bot.on("add_dj", function (data){this.add_dj(data);});//handle add dj event
+	//bot.on("rem_dj", function (data){this.rem_dj(data);});//handle remove dj event
+}
+global.find_room = function(){//find roomid based on user input of name
+	console.log("find_room called");
+	console.log(target_room);
+	for(var i in destination){
+		if(destination[i].name == target_room){
+				room_id = destination[i].id;
+		}
+	}
+	console.log(room_id);
+	if(room_id != "")
+	{
+		create_cerberus();
+	}
+}
+global.from_user = function(){//get room name from user
+	prompt.start();
+	prompt.get("room", function(err, result){target_room=result.room; find_room();});
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//TURNTABLE EVENT HANDLERS
+//RUNTIME ENVIRONMENT
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-cerberus.on("ready", function (data){this.ready();});//turntable bot ready
-cerberus.on("roomChanged", function (data){this.changed(data);});//bot entering new room
-cerberus.on("registered", function (data){this.registered(data);});//handle user register event
-cerberus.on("deregistered", function (data){this.deregistered(data);});//handle user deregister event
-cerberus.on("speak", function (data){this.chat(data);});//handle chat public chat event
-cerberus.on("pmmed", function (data){this.pmmed(data);});//handle bot private message event
-cerberus.on("newsong", function (data){this.newsong(data);});//handle new song event
-//bot.on("snagged", function (data){this.snagged(data);});//handle song snagged event
-//bot.on("update_votes", function (data){this.update_votes(data);});//handle vote event
-//bot.on("endsong", function (data){this.endsong(data);});//handle end song event
-//bot.on("new_moderator", function (data){this.add_mod(data);});//handle new moderator event
-//bot.on("rem_moderator", function (data){this.rem_mod(data);});//handle removed moderator event
-//bot.on("add_dj", function (data){this.add_dj(data);});//handle add dj event
-//bot.on("rem_dj", function (data){this.rem_dj(data);});//handle remove dj event
+try{
+	from_user();
+}
+catch(err){
+	console.log(err);
+}
